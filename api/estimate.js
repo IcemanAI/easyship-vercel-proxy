@@ -40,24 +40,24 @@ export default async function handler(req, res) {
       parcels: [parcelDetails]
     };
 
-    console.log('🔄 Sending to EasyShip:', JSON.stringify(payload, null, 2));
+    console.log('🔄 Sending to EasyShip SANDBOX:', JSON.stringify(payload, null, 2));
 
-    const response = await fetch('https://api.easyship.com/rate/v1/rates', {
+    const response = await fetch('https://api.sandbox.easyship.com/rate/v1/rates', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.EASYSHIP_API_TOKEN}`
+        'Authorization': `Bearer ${process.env.EASYSHIP_SANDBOX_API_TOKEN}`
       },
       body: JSON.stringify(payload)
     });
 
     const data = await response.json();
 
-    console.log('✅ EasyShip response:', JSON.stringify(data, null, 2));
+    console.log('✅ EasyShip sandbox response:', JSON.stringify(data, null, 2));
 
     if (!response.ok || !data.rates?.length) {
       return res.status(500).json({
-        error: data.message || 'No rates returned',
+        error: data.message || 'No rates returned from sandbox',
         raw: data
       });
     }
@@ -74,7 +74,7 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    console.error('❌ Server error:', err);
-    res.status(500).json({ error: 'Internal server error', details: err.message });
+    console.error('❌ Sandbox server error:', err);
+    res.status(500).json({ error: 'Sandbox server error', details: err.message });
   }
 }
