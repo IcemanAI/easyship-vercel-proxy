@@ -78,7 +78,3 @@ export default async function handler(req, res) {
     res.status(500).json({ error: 'Internal server error', details: err.message });
   }
 }
-
-console.log('🔄 Sending to EasyShip:', JSON.stringify(payload, null, 2));
-console.log('✅ EasyShip response:', JSON.stringify(data, null, 2));
-
