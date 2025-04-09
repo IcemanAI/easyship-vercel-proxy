@@ -1,0 +1,25 @@
+<input id="zip" placeholder="Enter postal code" />
+<select id="country">
+  <option value="GB">United Kingdom</option>
+  <option value="US">United States</option>
+  <option value="FR">France</option>
+</select>
+<button onclick="testShipping()">Check Shipping</button>
+
+<pre id="output">Estimate will appear here</pre>
+
+<script>
+  async function testShipping() {
+    const postalCode = document.getElementById('zip').value;
+    const country = document.getElementById('country').value;
+
+    const res = await fetch("https://easyship-vercel-proxy.vercel.app/api/sendcloud-estimate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ postal_code: postalCode, country })
+    });
+
+    const data = await res.json();
+    document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+  }
+</script>
