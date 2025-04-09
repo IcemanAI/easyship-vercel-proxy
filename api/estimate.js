@@ -3,44 +3,70 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { postal_code, country = 'US' } = req.body;
+  const { postal_code, country } = req.body;
 
-  const response = await fetch('https://api.easyship.com/rate/v1/rates', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.EASYSHIP_API_TOKEN}`
-    },
-    body: JSON.stringify({
-      origin_address: {
-        country_alpha2: 'US', // your warehouse country
-        postal_code: '10001'  // your warehouse postal code
-      },
-      destination_address: {
-        country_alpha2: country,
-        postal_code: postal_code
-      },
-      parcels: [{
-        length: 10,
-        width: 10,
-        height: 5,
-        weight: 2
-      }]
-    })
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    return res.status(500).json({ error: data.message || 'Error from EasyShip' });
+  if (!postal_code || !country) {
+    return res.status(400).json({ error: 'Missing postal_code or country' });
   }
 
-  const topOption = data.rates?.[0];
+  const parcelDetails = {
+    length: 70, // in cm
+    width: 70,
+    height: 70,
+    weight: 70 // in kg
+  };
 
-  res.status(200).json({
-    courier: topOption?.courier_name,
-    delivery_days: topOption?.delivery_days,
-    total_cost: topOption?.total_charge,
-    eta: topOption?.estimated_delivery_date
-  });
+  const origin = {
+    country_alpha2: 'GB',
+    postal_code: 'CT12 5NQ'
+  };
+
+  try {
+    const payload = {
+      origin_address: origin,
+      destination_address: {
+        country_alpha2: country.toUpperCase(),
+        postal_code: postal_code
+      },
+      parcels: [parcelDetails]
+    };
+
+    console.log('🔄 Sending to EasyShip:', JSON.stringify(payload, null, 2));
+
+    const response = await fetch('https://api.easyship.com/rate/v1/rates', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.EASYSHIP_API_TOKEN}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+
+    console.log('✅ EasyShip response:', JSON.stringify(data, null, 2));
+
+    if (!response.ok || !data.rates?.length) {
+      return res.status(500).json({
+        error: data.message || 'No rates returned',
+        raw: data
+      });
+    }
+
+    // You could return all rates if you want a dropdown — for now we return the cheapest
+    const bestRate = data.rates[0];
+
+    res.status(200).json({
+      courier: bestRate.courier_name,
+      service: bestRate.courier_service_name,
+      delivery_days: bestRate.delivery_days,
+      total_cost: bestRate.total_charge,
+      eta: bestRate.estimated_delivery_date,
+      currency: bestRate.currency
+    });
+
+  } catch (err) {
+    console.error('❌ Server error:', err);
+    res.status(500).json({ error: 'Internal server error', details: err.message });
+  }
 }
