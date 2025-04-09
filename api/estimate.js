@@ -1,4 +1,13 @@
 export default async function handler(req, res) {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end(); // pre-flight check passed
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -10,10 +19,10 @@ export default async function handler(req, res) {
   }
 
   const parcelDetails = {
-    length: 70, // in cm
+    length: 70,
     width: 70,
     height: 70,
-    weight: 70 // in kg
+    weight: 70
   };
 
   const origin = {
@@ -53,16 +62,15 @@ export default async function handler(req, res) {
       });
     }
 
-    // You could return all rates if you want a dropdown — for now we return the cheapest
     const bestRate = data.rates[0];
 
     res.status(200).json({
-      courier: bestRate.courier_name,
-      service: bestRate.courier_service_name,
-      delivery_days: bestRate.delivery_days,
-      total_cost: bestRate.total_charge,
-      eta: bestRate.estimated_delivery_date,
-      currency: bestRate.currency
+      courier: bestRate?.courier_name,
+      service: bestRate?.courier_service_name,
+      delivery_days: bestRate?.delivery_days,
+      total_cost: bestRate?.total_charge,
+      eta: bestRate?.estimated_delivery_date,
+      currency: bestRate?.currency
     });
 
   } catch (err) {
