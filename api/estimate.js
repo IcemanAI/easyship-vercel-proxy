@@ -1,22 +1,22 @@
 export default async function handler(req, res) {
-  // Set CORS headers
+  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end(); // pre-flight check passed
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { postal_code, country } = req.body;
 
   if (!postal_code || !country) {
     return res.status(400).json({ error: 'Missing postal_code or country' });
   }
+
+  const origin = {
+    country_alpha2: 'GB',
+    postal_code: 'CT12 5NQ'
+  };
 
   const parcelDetails = {
     length: 70,
@@ -25,23 +25,19 @@ export default async function handler(req, res) {
     weight: 70
   };
 
-  const origin = {
-    country_alpha2: 'GB',
-    postal_code: 'CT12 5NQ'
+  const payload = {
+    origin_address: origin,
+    destination_address: {
+      country_alpha2: country.toUpperCase(),
+      postal_code
+    },
+    parcels: [parcelDetails]
   };
 
+  console.log('🔍 DEBUG - Sending payload to EasyShip sandbox:');
+  console.log(JSON.stringify(payload, null, 2));
+
   try {
-    const payload = {
-      origin_address: origin,
-      destination_address: {
-        country_alpha2: country.toUpperCase(),
-        postal_code: postal_code
-      },
-      parcels: [parcelDetails]
-    };
-
-    console.log('🔄 Sending to EasyShip SANDBOX:', JSON.stringify(payload, null, 2));
-
     const response = await fetch('https://api.sandbox.easyship.com/rate/v1/rates', {
       method: 'POST',
       headers: {
@@ -53,9 +49,11 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    console.log('✅ EasyShip sandbox response:', JSON.stringify(data, null, 2));
+    console.log('📥 DEBUG - EasyShip sandbox response:');
+    console.log(JSON.stringify(data, null, 2));
 
     if (!response.ok || !data.rates?.length) {
+      console.warn('⚠️ Sandbox response error:', response.status, data);
       return res.status(500).json({
         error: data.message || 'No rates returned from sandbox',
         raw: data
@@ -74,7 +72,11 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    console.error('❌ Sandbox server error:', err);
-    res.status(500).json({ error: 'Sandbox server error', details: err.message });
+    console.error('❌ Caught error while calling sandbox API:', err);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: err.message,
+      stack: err.stack
+    });
   }
 }
