@@ -24,9 +24,18 @@ export default async function handler(req, res) {
 
   try {
     // Encode Sendcloud credentials
-    const authHeader = 'Basic ' + Buffer.from(
-      `${process.env.SENDCLOUD_PUBLIC_KEY}:${process.env.SENDCLOUD_SECRET_KEY}`
-    ).toString('base64');
+    const useSandbox = req.body.sandbox;
+
+const publicKey = useSandbox
+  ? process.env.SENDCLOUD_PUBLIC_KEY_SANDBOX
+  : process.env.SENDCLOUD_PUBLIC_KEY;
+
+const secretKey = useSandbox
+  ? process.env.SENDCLOUD_SECRET_KEY_SANDBOX
+  : process.env.SENDCLOUD_SECRET_KEY;
+
+const authHeader = 'Basic ' + Buffer.from(`${publicKey}:${secretKey}`).toString('base64');
+
 
     // Fetch shipping methods from Sendcloud
     const response = await fetch('https://panel.sendcloud.sc/api/v2/shipping_methods', {
