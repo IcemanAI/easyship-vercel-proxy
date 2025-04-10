@@ -27,15 +27,18 @@
     <label>
       Country:
       <select id="country">
-  <option value="US">United States</option>
-  <option value="GB">United Kingdom</option>
-  <option value="FR">France</option>
-  <option value="NL">Netherlands</option>
-  <option value="DE">Germany</option>
-  <option value="BE">Belgium</option>
-  <option value="ES">Spain</option>
-</select>
-
+        <option value="US">United States</option>
+        <option value="GB">United Kingdom</option>
+        <option value="FR">France</option>
+        <option value="NL">Netherlands</option>
+        <option value="DE">Germany</option>
+        <option value="BE">Belgium</option>
+        <option value="ES">Spain</option>
+        <option value="IT">Italy</option>
+        <option value="IE">Ireland</option>
+        <option value="CA">Canada</option>
+        <option value="AU">Australia</option>
+      </select>
     </label>
     <button onclick="getEstimate()">Get Estimate</button>
     <pre id="estimateOutput">Estimate will appear here...</pre>
@@ -80,31 +83,37 @@
       const postal_code = document.getElementById("postalCode").value;
       const country = document.getElementById("country").value;
 
-      const res = await fetch(getEndpoint(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postal_code, country })
-      });
+      try {
+        const res = await fetch(getEndpoint(), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ postal_code, country })
+        });
 
-      const data = await res.json();
-      document.getElementById("estimateOutput").textContent = JSON.stringify(data, null, 2);
-      log(`📦 Estimate Response:\n${JSON.stringify(data, null, 2)}`);
+        const data = await res.json();
+        document.getElementById("estimateOutput").textContent = JSON.stringify(data, null, 2);
+        log(`📦 Estimate Response:\n${JSON.stringify(data, null, 2)}`);
+      } catch (err) {
+        console.error("❌ Fetch error:", err);
+        log("❌ Error fetching estimate: " + err.message);
+      }
     }
 
-    async function loadOptions() {
+    function loadOptions() {
       const container = document.getElementById("optionsContainer");
       container.innerHTML = "";
 
       const options = [
-        { id: "opt1", courier: "UPS", eta: "3-5 days", cost: 12.99 },
-        { id: "opt2", courier: "DHL", eta: "1-2 days", cost: 18.50 },
-        { id: "opt3", courier: "Royal Mail", eta: "4-6 days", cost: 9.99 },
+        { id: "opt1", courier: "UPS", eta: "3–5 days", cost: 12.99 },
+        { id: "opt2", courier: "DHL", eta: "1–2 days", cost: 18.50 },
+        { id: "opt3", courier: "Royal Mail", eta: "4–6 days", cost: 9.99 },
       ];
 
       options.forEach(opt => {
         const label = document.createElement("label");
+        const safeValue = JSON.stringify(opt).replace(/'/g, "&apos;");
         label.innerHTML = `
-          <input type="radio" name="shippingOption" value="${JSON.stringify(opt)}" />
+          <input type="radio" name="shippingOption" value='${safeValue}' />
           ${opt.courier} – £${opt.cost} – ${opt.eta}
         `;
         container.appendChild(label);
@@ -117,33 +126,41 @@
       const selected = document.querySelector('input[name="shippingOption"]:checked');
       if (!selected) return alert("Please select a shipping option");
 
-      const data = JSON.parse(selected.value);
-      const stripeTotal = 199.99 + data.cost; // Pretend cart value is £199.99
-      document.getElementById("stripeOutput").textContent =
-        `New Stripe Total: £${stripeTotal.toFixed(2)}\nSelected: ${data.courier} – ${data.eta}`;
-
-      log(`💰 Shipping selected:\n${JSON.stringify(data, null, 2)}`);
+      try {
+        const data = JSON.parse(selected.value.replace(/&apos;/g, "'"));
+        const stripeTotal = 199.99 + data.cost;
+        document.getElementById("stripeOutput").textContent =
+          `New Stripe Total: £${stripeTotal.toFixed(2)}\nSelected: ${data.courier} – ${data.eta}`;
+        log(`💰 Shipping selected:\n${JSON.stringify(data, null, 2)}`);
+      } catch (err) {
+        console.error("❌ Parse error:", err);
+        log("❌ Error parsing shipping option: " + err.message);
+      }
     }
 
     function completeOrder() {
       const selected = document.querySelector('input[name="shippingOption"]:checked');
       if (!selected) return alert("Select an option first!");
 
-      const data = JSON.parse(selected.value);
-      const contact = {
-        name: "Test User",
-        email: "test@example.com",
-        courier: data.courier,
-        eta: data.eta,
-        cost: data.cost,
-        zip: document.getElementById("postalCode").value,
-        country: document.getElementById("country").value
-      };
+      try {
+        const data = JSON.parse(selected.value.replace(/&apos;/g, "'"));
+        const contact = {
+          name: "Test User",
+          email: "test@example.com",
+          courier: data.courier,
+          eta: data.eta,
+          cost: data.cost,
+          zip: document.getElementById("postalCode").value,
+          country: document.getElementById("country").value
+        };
 
-      document.getElementById("hubspotOutput").textContent =
-        `Storing to HubSpot:\n${JSON.stringify(contact, null, 2)}`;
-
-      log(`🧾 Mock HubSpot payload:\n${JSON.stringify(contact, null, 2)}`);
+        document.getElementById("hubspotOutput").textContent =
+          `Storing to HubSpot:\n${JSON.stringify(contact, null, 2)}`;
+        log(`🧾 Mock HubSpot payload:\n${JSON.stringify(contact, null, 2)}`);
+      } catch (err) {
+        console.error("❌ Complete error:", err);
+        log("❌ Error completing order: " + err.message);
+      }
     }
   </script>
 </body>
