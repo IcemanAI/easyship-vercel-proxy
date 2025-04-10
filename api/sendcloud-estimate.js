@@ -1,10 +1,11 @@
 export default async function handler(req, res) {
+  // Allow CORS for browser-based testing
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return res.status(200).end(); // Handle preflight
   }
 
   if (req.method !== 'POST') {
@@ -14,11 +15,10 @@ export default async function handler(req, res) {
   const {
     postal_code,
     country,
-    weight = 500, // in grams
-    length = 10,  // in cm
+    weight = 500, // grams
+    length = 10,  // cm
     width = 10,
-    height = 5,
-    sandbox = false
+    height = 5
   } = req.body;
 
   if (!postal_code || !country) {
@@ -26,19 +26,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const publicKey = sandbox
-      ? process.env.SENDCLOUD_PUBLIC_KEY_SANDBOX
-      : process.env.SENDCLOUD_PUBLIC_KEY;
-
-    const secretKey = sandbox
-      ? process.env.SENDCLOUD_SECRET_KEY_SANDBOX
-      : process.env.SENDCLOUD_SECRET_KEY;
+    // Always use live Sendcloud keys now
+    const publicKey = process.env.SENDCLOUD_PUBLIC_KEY;
+    const secretKey = process.env.SENDCLOUD_SECRET_KEY;
 
     const authHeader = 'Basic ' + Buffer.from(`${publicKey}:${secretKey}`).toString('base64');
 
     const payload = {
       parcel: {
-        from_country: "GB", // Your origin country
+        from_country: "GB", // Adjust if you're shipping from a different country
         to_country: country.toUpperCase(),
         to_postal_code: postal_code,
         weight,
@@ -47,6 +43,8 @@ export default async function handler(req, res) {
         height
       }
     };
+
+    console.log("📤 Sending to Sendcloud:", JSON.stringify(payload, null, 2));
 
     const response = await fetch('https://panel.sendcloud.sc/api/v2/shipping_methods', {
       method: 'POST',
@@ -58,9 +56,9 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    console.log("📦 Sendcloud response:", JSON.stringify(data, null, 2));
 
     if (!response.ok || !data.shipping_methods) {
+      console.error("❌ Error from Sendcloud:", data);
       return res.status(response.status).json({
         error: 'Failed to fetch shipping methods',
         status: response.status,
@@ -72,6 +70,8 @@ export default async function handler(req, res) {
       method => method.to_country === country.toUpperCase()
     );
 
+    console.log("✅ Shipping methods found:", filtered.length);
+
     return res.status(200).json({
       success: true,
       country: country.toUpperCase(),
@@ -80,7 +80,7 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    console.error('❌ API error:', err);
+    console.error('❌ Internal error:', err);
     return res.status(500).json({
       error: 'Internal Server Error',
       details: err.message
