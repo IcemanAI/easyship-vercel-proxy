@@ -8,6 +8,7 @@
     section { margin-bottom: 2rem; }
     pre { background: #eee; padding: 10px; overflow-x: auto; }
     label { display: block; margin-top: 10px; }
+    input[type="number"] { width: 100px; }
   </style>
 </head>
 <body>
@@ -40,11 +41,16 @@
         <option value="AU">Australia</option>
       </select>
     </label>
+    <label>Weight (grams): <input type="number" id="weight" value="500" /></label>
+    <label>Length (cm): <input type="number" id="length" value="10" /></label>
+    <label>Width (cm): <input type="number" id="width" value="10" /></label>
+    <label>Height (cm): <input type="number" id="height" value="5" /></label>
+
     <button onclick="getEstimate()">Get Estimate</button>
     <pre id="estimateOutput">Estimate will appear here...</pre>
   </section>
 
-  <!-- Shipping Options -->
+  <!-- Shipping Options (mock for now) -->
   <section>
     <h2>2. Show Shipping Options</h2>
     <button onclick="loadOptions()">Load Shipping Options</button>
@@ -73,92 +79,61 @@
     };
 
     const getEndpoint = () => {
-  return "https://easyship-vercel-proxy.vercel.app/api/sendcloud-estimate";
-};
+      return "https://easyship-vercel-proxy.vercel.app/api/sendcloud-estimate";
+    };
 
     async function getEstimate() {
-      const postal_code = document.getElementById("postalCode").value;
+      const postal_code = document.getElementById("postalCode").value.trim();
       const country = document.getElementById("country").value;
+      const sandbox = document.getElementById("sandboxToggle").checked;
+      const weight = parseInt(document.getElementById("weight").value, 10);
+      const length = parseInt(document.getElementById("length").value, 10);
+      const width = parseInt(document.getElementById("width").value, 10);
+      const height = parseInt(document.getElementById("height").value, 10);
+
+      if (!postal_code || !country) {
+        alert("Please enter a postal code and select a country.");
+        return;
+      }
+
+      const payload = {
+        postal_code,
+        country,
+        weight,
+        length,
+        width,
+        height,
+        sandbox
+      };
+
+      document.getElementById("estimateOutput").textContent = "⏳ Getting estimate...";
+      log("📤 Sending:\n" + JSON.stringify(payload, null, 2));
 
       try {
         const res = await fetch(getEndpoint(), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ postal_code, country })
+          body: JSON.stringify(payload)
         });
 
         const data = await res.json();
-        document.getElementById("estimateOutput").textContent = JSON.stringify(data, null, 2);
-        log(`📦 Estimate Response:\n${JSON.stringify(data, null, 2)}`);
+        log(`📦 Response:\n${JSON.stringify(data, null, 2)}`);
+
+        if (data.success && data.available_methods?.length > 0) {
+          document.getElementById("estimateOutput").textContent =
+            data.available_methods.map(m => `${m.name} – ${m.min_weight}g–${m.max_weight}g`).join("\n");
+        } else {
+          document.getElementById("estimateOutput").textContent = "❌ No shipping methods returned.";
+        }
       } catch (err) {
         console.error("❌ Fetch error:", err);
-        log("❌ Error fetching estimate: " + err.message);
+        document.getElementById("estimateOutput").textContent = "❌ Error fetching estimate.";
+        log("❌ " + err.message);
       }
     }
 
-    function loadOptions() {
-      const container = document.getElementById("optionsContainer");
-      container.innerHTML = "";
-
-      const options = [
-        { id: "opt1", courier: "UPS", eta: "3–5 days", cost: 12.99 },
-        { id: "opt2", courier: "DHL", eta: "1–2 days", cost: 18.50 },
-        { id: "opt3", courier: "Royal Mail", eta: "4–6 days", cost: 9.99 },
-      ];
-
-      options.forEach(opt => {
-        const label = document.createElement("label");
-        const safeValue = JSON.stringify(opt).replace(/'/g, "&apos;");
-        label.innerHTML = `
-          <input type="radio" name="shippingOption" value='${safeValue}' />
-          ${opt.courier} – £${opt.cost} – ${opt.eta}
-        `;
-        container.appendChild(label);
-      });
-
-      log("📦 Mock shipping options loaded.");
-    }
-
-    function selectOption() {
-      const selected = document.querySelector('input[name="shippingOption"]:checked');
-      if (!selected) return alert("Please select a shipping option");
-
-      try {
-        const data = JSON.parse(selected.value.replace(/&apos;/g, "'"));
-        const stripeTotal = 199.99 + data.cost;
-        document.getElementById("stripeOutput").textContent =
-          `New Stripe Total: £${stripeTotal.toFixed(2)}\nSelected: ${data.courier} – ${data.eta}`;
-        log(`💰 Shipping selected:\n${JSON.stringify(data, null, 2)}`);
-      } catch (err) {
-        console.error("❌ Parse error:", err);
-        log("❌ Error parsing shipping option: " + err.message);
-      }
-    }
-
-    function completeOrder() {
-      const selected = document.querySelector('input[name="shippingOption"]:checked');
-      if (!selected) return alert("Select an option first!");
-
-      try {
-        const data = JSON.parse(selected.value.replace(/&apos;/g, "'"));
-        const contact = {
-          name: "Test User",
-          email: "test@example.com",
-          courier: data.courier,
-          eta: data.eta,
-          cost: data.cost,
-          zip: document.getElementById("postalCode").value,
-          country: document.getElementById("country").value
-        };
-
-        document.getElementById("hubspotOutput").textContent =
-          `Storing to HubSpot:\n${JSON.stringify(contact, null, 2)}`;
-        log(`🧾 Mock HubSpot payload:\n${JSON.stringify(contact, null, 2)}`);
-      } catch (err) {
-        console.error("❌ Complete error:", err);
-        log("❌ Error completing order: " + err.message);
-      }
-    }
+    // (Leave your mock option / complete order code untouched for now)
+    // ...
   </script>
 </body>
 </html>
