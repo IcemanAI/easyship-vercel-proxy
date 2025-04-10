@@ -14,11 +14,6 @@
 <body>
   <h1>Sendcloud Integration Test</h1>
 
-  <!-- Toggle -->
-  <section>
-    <label><input type="checkbox" id="sandboxToggle" checked /> Use Sandbox Mode</label>
-  </section>
-
   <!-- Basket -->
   <section>
     <h2>1. Get Delivery Estimate</h2>
@@ -50,7 +45,7 @@
     <pre id="estimateOutput">Estimate will appear here...</pre>
   </section>
 
-  <!-- Shipping Options (mock for now) -->
+  <!-- Shipping Options -->
   <section>
     <h2>2. Show Shipping Options</h2>
     <button onclick="loadOptions()">Load Shipping Options</button>
@@ -85,7 +80,6 @@
     async function getEstimate() {
       const postal_code = document.getElementById("postalCode").value.trim();
       const country = document.getElementById("country").value;
-      const sandbox = document.getElementById("sandboxToggle").checked;
       const weight = parseInt(document.getElementById("weight").value, 10);
       const length = parseInt(document.getElementById("length").value, 10);
       const width = parseInt(document.getElementById("width").value, 10);
@@ -102,8 +96,7 @@
         weight,
         length,
         width,
-        height,
-        sandbox
+        height
       };
 
       document.getElementById("estimateOutput").textContent = "⏳ Getting estimate...";
@@ -132,8 +125,7 @@
       }
     }
 
-    // (Leave your mock option / complete order code untouched for now)
-    // ...
+    // You can leave the rest of your shipping selection and checkout logic unchanged for now.
   </script>
 </body>
 </html>
