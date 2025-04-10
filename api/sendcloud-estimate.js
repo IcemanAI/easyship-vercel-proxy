@@ -46,6 +46,20 @@ export default async function handler(req, res) {
 
     console.log("📤 Sending to Sendcloud:", JSON.stringify(payload, null, 2));
 
+    // Optional debug check: get account info to verify access level
+try {
+  const userInfo = await fetch('https://panel.sendcloud.sc/api/v2/user', {
+    method: 'GET',
+    headers: {
+      'Authorization': authHeader,
+      'Content-Type': 'application/json'
+    }
+  });
+  const userData = await userInfo.json();
+  console.log("👤 Sendcloud User Info:", JSON.stringify(userData, null, 2));
+} catch (userErr) {
+  console.warn("⚠️ Could not fetch user info:", userErr);
+}
     const response = await fetch('https://panel.sendcloud.sc/api/v2/shipping_methods', {
       method: 'POST',
       headers: {
