@@ -46,20 +46,39 @@ export default async function handler(req, res) {
 
     console.log("📤 Sending to Sendcloud:", JSON.stringify(payload, null, 2));
 
-    // Optional debug check: get account info to verify access level
-try {
-  const userInfo = await fetch('https://panel.sendcloud.sc/api/v2/user', {
-    method: 'GET',
-    headers: {
-      'Authorization': authHeader,
-      'Content-Type': 'application/json'
+    // First test the user endpoint (which we know works)
+    try {
+      const userInfo = await fetch('https://panel.sendcloud.sc/api/v2/user', {
+        method: 'GET',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json'
+        }
+      });
+      const userData = await userInfo.json();
+      console.log("👤 Sendcloud User Info:", JSON.stringify(userData, null, 2));
+    } catch (userErr) {
+      console.warn("⚠️ Could not fetch user info:", userErr);
     }
-  });
-  const userData = await userInfo.json();
-  console.log("👤 Sendcloud User Info:", JSON.stringify(userData, null, 2));
-} catch (userErr) {
-  console.warn("⚠️ Could not fetch user info:", userErr);
-}
+    
+    // Now try getting available shipping methods WITHOUT posting data
+    // This will check if we have read access to shipping methods
+    try {
+      const shippingMethodsGet = await fetch('https://panel.sendcloud.sc/api/v2/shipping_methods', {
+        method: 'GET',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      const getMethodsData = await shippingMethodsGet.json();
+      console.log("📋 GET Shipping Methods Response:", JSON.stringify(getMethodsData, null, 2));
+    } catch (getMethodsErr) {
+      console.warn("⚠️ Could not fetch shipping methods with GET:", getMethodsErr);
+    }
+
+    // Then try the original POST request
     const response = await fetch('https://panel.sendcloud.sc/api/v2/shipping_methods', {
       method: 'POST',
       headers: {
