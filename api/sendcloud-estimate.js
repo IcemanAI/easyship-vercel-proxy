@@ -49,9 +49,12 @@ export default async function handler(req, res) {
     }
 
     // Filter methods based on destination country
-    const filtered = data.shipping_methods.filter(method =>
-      method.to_country === country.toUpperCase()
-    );
+    console.log("📦 All shipping methods:", JSON.stringify(data.shipping_methods, null, 2));
+
+const filtered = data.shipping_methods?.filter(method =>
+  method.to_country === country.toUpperCase()
+);
+
 
     return res.status(200).json({
       success: true,
