@@ -1,279 +1,445 @@
-<div id="shipping-calculator" class="shipping-calculator">
-  <h3>Shipping Calculator</h3>
-  
-  <div class="form-group">
-    <label for="country">Country</label>
-    <select id="country" class="form-control">
-      <option value="">Select a country</option>
-      <option value="GB">United Kingdom</option>
-      <option value="US">United States</option>
-      <option value="FR">France</option>
-      <option value="DE">Germany</option>
-      <option value="NL">Netherlands</option>
-      <option value="BE">Belgium</option>
-      <option value="ES">Spain</option>
-      <option value="IT">Italy</option>
-      <option value="IE">Ireland</option>
-    </select>
-  </div>
-  
-  <div class="form-group">
-    <label for="postal_code">Postal Code</label>
-    <input type="text" id="postal_code" class="form-control" placeholder="e.g. AB12 3CD" />
-  </div>
-  
-  <div class="form-group">
-    <label for="weight">Package Weight (g)</label>
-    <input type="number" id="weight" class="form-control" value="500" min="1" />
-  </div>
-  
-  <button id="calculate-shipping" class="btn btn-primary">Calculate Shipping</button>
-  
-  <div id="shipping-results" style="display: none;">
-    <h4>Available Shipping Options</h4>
-    <div id="shipping-options-container"></div>
-    
-    <div class="shipping-selection-controls" style="display: none; margin-top: 15px;">
-      <button id="confirm-shipping" class="btn btn-success">Confirm Selection</button>
-    </div>
-  </div>
-  
-  <div id="shipping-confirmation" style="display: none; margin-top: 20px;">
-    <div class="alert alert-success">
-      <h4>Shipping Option Selected</h4>
-      <p id="selected-shipping-summary"></p>
-      
-      <!-- This data would be passed to your checkout or CRM -->
-      <input type="hidden" id="selected-shipping-method-id" name="shipping_method_id" />
-      <input type="hidden" id="selected-shipping-price" name="shipping_price" />
-      <input type="hidden" id="selected-shipping-carrier" name="shipping_carrier" />
-    </div>
-  </div>
-</div>
-
-<style>
-  .shipping-calculator {
-    max-width: 500px;
-    margin: 0 auto;
-    padding: 20px;
-    border: 1px solid #eee;
-    border-radius: 5px;
-  }
-  .form-group {
-    margin-bottom: 15px;
-  }
-  .form-control {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-  }
-  .btn {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  .btn-primary {
-    background-color: #0066cc;
-    color: white;
-  }
-  .btn-success {
-    background-color: #28a745;
-    color: white;
-  }
-  .shipping-option {
-    margin: 10px 0;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  .shipping-option:hover {
-    background-color: #f9f9f9;
-  }
-  .shipping-option.selected {
-    border-color: #28a745;
-    background-color: #f0fff0;
-  }
-  .shipping-option-carrier {
-    font-weight: bold;
-  }
-  .shipping-option-price {
-    float: right;
-    font-weight: bold;
-  }
-  .shipping-option-delivery {
-    color: #666;
-    font-size: 0.9em;
-    margin-top: 5px;
-  }
-  .alert {
-    padding: 15px;
-    border-radius: 4px;
-  }
-  .alert-success {
-    background-color: #d4edda;
-    border-color: #c3e6cb;
-    color: #155724;
-  }
-</style>
-
-<script>
-  // Configuration
-  const API_ENDPOINT = 'https://easyship-vercel-proxy.vercel.app/api/sendcloud-estimate';
-  
-  // DOM elements
-  const calculateBtn = document.getElementById('calculate-shipping');
-  const confirmBtn = document.getElementById('confirm-shipping');
-  const resultsContainer = document.getElementById('shipping-results');
-  const optionsContainer = document.getElementById('shipping-options-container');
-  const confirmationContainer = document.getElementById('shipping-confirmation');
-  const selectionControls = document.querySelector('.shipping-selection-controls');
-  const selectedSummary = document.getElementById('selected-shipping-summary');
-  
-  // Hidden fields for data storage
-  const selectedMethodIdField = document.getElementById('selected-shipping-method-id');
-  const selectedPriceField = document.getElementById('selected-shipping-price');
-  const selectedCarrierField = document.getElementById('selected-shipping-carrier');
-  
-  // Calculate shipping
-  calculateBtn.addEventListener('click', async function() {
-    const country = document.getElementById('country').value;
-    const postalCode = document.getElementById('postal_code').value;
-    const weight = parseInt(document.getElementById('weight').value, 10);
-    
-    if (!country || !postalCode) {
-      alert('Please enter both country and postal code');
-      return;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shipping Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
     }
     
-    // Reset UI
-    optionsContainer.innerHTML = '<p>Loading shipping options...</p>';
-    resultsContainer.style.display = 'block';
-    selectionControls.style.display = 'none';
-    confirmationContainer.style.display = 'none';
+    .calculator-container {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 25px;
+      margin-bottom: 30px;
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
     
-    try {
-      const response = await fetch(API_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          country,
-          postal_code: postalCode,
-          weight,
-          length: 10,
-          width: 10,
-          height: 5
-        })
+    h1 {
+      margin-top: 0;
+      margin-bottom: 25px;
+      color: #222;
+      font-size: 28px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 16px;
+    }
+    
+    select, input {
+      display: block;
+      width: 100%;
+      padding: 10px 15px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    
+    button {
+      background-color: #0066cc;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      transition: background-color 0.2s;
+    }
+    
+    button:hover {
+      background-color: #0055aa;
+    }
+    
+    h2 {
+      margin-top: 30px;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+      font-size: 22px;
+    }
+    
+    #shipping-results {
+      display: none;
+      margin-top: 30px;
+    }
+    
+    .shipping-option {
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 15px;
+      margin-bottom: 15px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .shipping-option:hover {
+      border-color: #0066cc;
+      background-color: #f9f9f9;
+    }
+    
+    .shipping-option.selected {
+      border-color: #0066cc;
+      background-color: #f0f7ff;
+    }
+    
+    .shipping-option-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .shipping-name {
+      font-weight: 600;
+      font-size: 16px;
+    }
+    
+    .shipping-price {
+      font-weight: 700;
+      font-size: 18px;
+    }
+    
+    .shipping-details {
+      color: #666;
+      font-size: 14px;
+    }
+    
+    .delivery-estimate {
+      margin-top: 8px;
+      color: #0066cc;
+      font-weight: 500;
+    }
+    
+    .selection-actions {
+      margin-top: 25px;
+      text-align: right;
+      display: none;
+    }
+    
+    #confirm-shipping {
+      background-color: #28a745;
+    }
+    
+    #confirm-shipping:hover {
+      background-color: #218838;
+    }
+    
+    #shipping-confirmation {
+      display: none;
+      margin-top: 30px;
+      padding: 15px;
+      background-color: #d4edda;
+      border: 1px solid #c3e6cb;
+      border-radius: 4px;
+      color: #155724;
+    }
+    
+    .loading-indicator {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+    
+    .error-message {
+      color: #dc3545;
+      padding: 15px;
+      border: 1px solid #f5c6cb;
+      border-radius: 4px;
+      background-color: #f8d7da;
+      margin-bottom: 20px;
+    }
+    
+    @media (max-width: 600px) {
+      .calculator-container {
+        padding: 15px;
+      }
+      
+      h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="calculator-container">
+    <h1>Shipping Calculator</h1>
+    
+    <div>
+      <label for="country">Country</label>
+      <select id="country">
+        <option value="">Select a country</option>
+        <option value="GB">United Kingdom</option>
+        <option value="US">United States</option>
+        <option value="DE">Germany</option>
+        <option value="FR">France</option>
+        <option value="NL">Netherlands</option>
+        <option value="BE">Belgium</option>
+        <option value="ES">Spain</option>
+        <option value="IT">Italy</option>
+        <option value="IE">Ireland</option>
+        <option value="CA">Canada</option>
+        <option value="AU">Australia</option>
+      </select>
+    </div>
+    
+    <div>
+      <label for="postal_code">Postal Code</label>
+      <input type="text" id="postal_code" placeholder="e.g., SW1A 1AA">
+    </div>
+    
+    <div>
+      <label for="weight">Package Weight (g)</label>
+      <input type="number" id="weight" value="500" min="1">
+    </div>
+    
+    <button id="calculate-shipping">Calculate Shipping</button>
+    
+    <div id="shipping-results">
+      <h2>Available Shipping Options</h2>
+      <div id="shipping-options"></div>
+      
+      <div class="selection-actions" id="selection-actions">
+        <button id="confirm-shipping">Confirm Selection</button>
+      </div>
+    </div>
+    
+    <div id="shipping-confirmation">
+      <h3>Shipping Option Selected</h3>
+      <p id="selected-summary"></p>
+      
+      <!-- Hidden fields to store selection data -->
+      <input type="hidden" id="selected-method-id">
+      <input type="hidden" id="selected-method-price">
+      <input type="hidden" id="selected-method-name">
+      <input type="hidden" id="selected-method-carrier">
+    </div>
+  </div>
+
+  <script>
+    // Config
+    const API_ENDPOINT = 'https://easyship-vercel-proxy.vercel.app/api/sendcloud-estimate';
+    
+    // DOM elements
+    const calculateButton = document.getElementById('calculate-shipping');
+    const resultsContainer = document.getElementById('shipping-results');
+    const shippingOptions = document.getElementById('shipping-options');
+    const selectionActions = document.getElementById('selection-actions');
+    const confirmButton = document.getElementById('confirm-shipping');
+    const confirmationContainer = document.getElementById('shipping-confirmation');
+    const selectedSummary = document.getElementById('selected-summary');
+    
+    // Hidden fields
+    const selectedMethodId = document.getElementById('selected-method-id');
+    const selectedMethodPrice = document.getElementById('selected-method-price');
+    const selectedMethodName = document.getElementById('selected-method-name');
+    const selectedMethodCarrier = document.getElementById('selected-method-carrier');
+    
+    // Calculate shipping
+    calculateButton.addEventListener('click', async function() {
+      const country = document.getElementById('country').value;
+      const postalCode = document.getElementById('postal_code').value;
+      const weight = parseInt(document.getElementById('weight').value, 10);
+      
+      if (!country) {
+        alert('Please select a country');
+        return;
+      }
+      
+      if (!postalCode) {
+        alert('Please enter a postal code');
+        return;
+      }
+      
+      // Reset UI
+      resultsContainer.style.display = 'block';
+      shippingOptions.innerHTML = '<div class="loading-indicator">Loading shipping options...</div>';
+      selectionActions.style.display = 'none';
+      confirmationContainer.style.display = 'none';
+      
+      // For debugging
+      console.log('Sending request to:', API_ENDPOINT);
+      console.log('Request data:', {
+        country,
+        postal_code: postalCode,
+        weight,
+        length: 10,
+        width: 10,
+        height: 5
       });
       
-      const data = await response.json();
-      
-      if (data.success && data.available_methods?.length > 0) {
-        renderShippingOptions(data.available_methods);
-        selectionControls.style.display = 'block';
-      } else {
-        optionsContainer.innerHTML = '<p>No shipping methods available for this destination.</p>';
-      }
-    } catch (error) {
-      optionsContainer.innerHTML = '<p>Error calculating shipping options. Please try again.</p>';
-      console.error(error);
-    }
-  });
-  
-  // Render shipping options
-  function renderShippingOptions(methods) {
-    optionsContainer.innerHTML = '';
-    
-    methods.forEach(method => {
-      const optionEl = document.createElement('div');
-      optionEl.className = 'shipping-option';
-      optionEl.dataset.id = method.id;
-      optionEl.dataset.price = method.price;
-      optionEl.dataset.carrier = method.carrier;
-      optionEl.dataset.name = method.name;
-      
-      const deliveryText = method.estimated_delivery 
-        ? method.estimated_delivery.formatted
-        : 'Delivery time unavailable';
-      
-      optionEl.innerHTML = `
-        <div class="shipping-option-carrier">${method.name}</div>
-        <div class="shipping-option-price">${method.currency}${method.price.toFixed(2)}</div>
-        <div class="shipping-option-delivery">${deliveryText}</div>
-      `;
-      
-      optionEl.addEventListener('click', function() {
-        // Remove selection from all options
-        document.querySelectorAll('.shipping-option').forEach(opt => {
-          opt.classList.remove('selected');
+      try {
+        const response = await fetch(API_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            country,
+            postal_code: postalCode,
+            weight,
+            length: 10,
+            width: 10,
+            height: 5
+          })
         });
         
-        // Add selection to this option
-        this.classList.add('selected');
+        console.log('Response status:', response.status);
+        
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        if (data.success && data.available_methods && data.available_methods.length > 0) {
+          renderShippingOptions(data.available_methods);
+          selectionActions.style.display = 'block';
+        } else {
+          shippingOptions.innerHTML = '<div class="error-message">No shipping methods available for this destination.</div>';
+        }
+      } catch (error) {
+        console.error('API request error:', error);
+        shippingOptions.innerHTML = '<div class="error-message">Failed to calculate shipping. Please try again.</div>';
+      }
+    });
+    
+    // Render shipping options
+    function renderShippingOptions(methods) {
+      shippingOptions.innerHTML = '';
+      
+      methods.forEach(method => {
+        const optionEl = document.createElement('div');
+        optionEl.className = 'shipping-option';
+        optionEl.setAttribute('data-id', method.id);
+        optionEl.setAttribute('data-name', method.name);
+        optionEl.setAttribute('data-price', method.price);
+        optionEl.setAttribute('data-carrier', method.carrier);
+        
+        const header = document.createElement('div');
+        header.className = 'shipping-option-header';
+        
+        const nameEl = document.createElement('div');
+        nameEl.className = 'shipping-name';
+        nameEl.textContent = method.name;
+        
+        const priceEl = document.createElement('div');
+        priceEl.className = 'shipping-price';
+        priceEl.textContent = `£${method.price.toFixed(2)}`;
+        
+        header.appendChild(nameEl);
+        header.appendChild(priceEl);
+        optionEl.appendChild(header);
+        
+        const details = document.createElement('div');
+        details.className = 'shipping-details';
+        details.textContent = `Carrier: ${method.carrier}`;
+        optionEl.appendChild(details);
+        
+        if (method.delivery_estimate) {
+          const deliveryEl = document.createElement('div');
+          deliveryEl.className = 'delivery-estimate';
+          deliveryEl.textContent = method.delivery_estimate.text;
+          optionEl.appendChild(deliveryEl);
+        }
+        
+        // Add click handler to select this option
+        optionEl.addEventListener('click', function() {
+          document.querySelectorAll('.shipping-option').forEach(option => {
+            option.classList.remove('selected');
+          });
+          
+          this.classList.add('selected');
+        });
+        
+        shippingOptions.appendChild(optionEl);
+      });
+    }
+    
+    // Confirm shipping selection
+    confirmButton.addEventListener('click', function() {
+      const selectedOption = document.querySelector('.shipping-option.selected');
+      
+      if (!selectedOption) {
+        alert('Please select a shipping option');
+        return;
+      }
+      
+      // Get data from selected option
+      const methodId = selectedOption.getAttribute('data-id');
+      const methodName = selectedOption.getAttribute('data-name');
+      const methodPrice = selectedOption.getAttribute('data-price');
+      const methodCarrier = selectedOption.getAttribute('data-carrier');
+      
+      // Store in hidden fields
+      selectedMethodId.value = methodId;
+      selectedMethodName.value = methodName;
+      selectedMethodPrice.value = methodPrice;
+      selectedMethodCarrier.value = methodCarrier;
+      
+      // Show confirmation
+      selectedSummary.textContent = `${methodName} - £${parseFloat(methodPrice).toFixed(2)}`;
+      confirmationContainer.style.display = 'block';
+      
+      // This data can be sent to your server or used with Stripe/HubSpot
+      console.log('Selected shipping method:', {
+        id: methodId,
+        name: methodName,
+        price: methodPrice,
+        carrier: methodCarrier
       });
       
-      optionsContainer.appendChild(optionEl);
-    });
-  }
-  
-  // Confirm shipping selection
-  confirmBtn.addEventListener('click', function() {
-    const selectedOption = document.querySelector('.shipping-option.selected');
-    
-    if (!selectedOption) {
-      alert('Please select a shipping option');
-      return;
-    }
-    
-    // Get data from the selected option
-    const methodId = selectedOption.dataset.id;
-    const methodPrice = selectedOption.dataset.price;
-    const methodCarrier = selectedOption.dataset.carrier;
-    const methodName = selectedOption.dataset.name;
-    
-    // Store values in hidden fields
-    selectedMethodIdField.value = methodId;
-    selectedPriceField.value = methodPrice;
-    selectedCarrierField.value = methodCarrier;
-    
-    // Display confirmation
-    selectedSummary.textContent = `${methodName} - £${parseFloat(methodPrice).toFixed(2)}`;
-    confirmationContainer.style.display = 'block';
-    
-    // You can add code here to pass these values to Stripe or HubSpot
-    console.log('Selected shipping method:', {
-      id: methodId,
-      carrier: methodCarrier,
-      name: methodName,
-      price: methodPrice
+      // Optional: Update any HubSpot forms if present
+      updateHubspotForms({
+        method_id: methodId,
+        method_name: methodName,
+        price: methodPrice,
+        carrier: methodCarrier
+      });
     });
     
-    // Example: Update a HubSpot form field
-    if (window.hbspt && document.querySelector('[name="shipping_method"]')) {
-      document.querySelector('[name="shipping_method"]').value = methodName;
+    // Update HubSpot form fields if present
+    function updateHubspotForms(shippingData) {
+      // Check if there are any HubSpot forms on the page
+      if (window.hbspt && document.querySelector('.hs-form')) {
+        const forms = document.querySelectorAll('.hs-form');
+        
+        forms.forEach(form => {
+          // Update shipping method field
+          if (form.querySelector('[name="shipping_method"]')) {
+            form.querySelector('[name="shipping_method"]').value = shippingData.method_name;
+          }
+          
+          // Update shipping cost field
+          if (form.querySelector('[name="shipping_cost"]')) {
+            form.querySelector('[name="shipping_cost"]').value = shippingData.price;
+          }
+          
+          // Update shipping carrier field
+          if (form.querySelector('[name="shipping_carrier"]')) {
+            form.querySelector('[name="shipping_carrier"]').value = shippingData.carrier;
+          }
+        });
+        
+        console.log('Updated HubSpot form fields with shipping information');
+      }
     }
     
-    // Example: Update cart total for Stripe
-    // updateCartTotal(parseFloat(methodPrice));
-  });
-  
-  // Optionally: Function to update cart total with shipping
-  function updateCartTotal(shippingPrice) {
-    // Example implementation - update with your actual cart logic
-    const subtotal = 99.99; // Replace with your actual product price
-    const total = subtotal + shippingPrice;
-    
-    console.log(`Cart updated: Subtotal: £${subtotal.toFixed(2)}, Shipping: £${shippingPrice.toFixed(2)}, Total: £${total.toFixed(2)}`);
-    
-    // Update DOM elements with the new total
-    if (document.getElementById('cart-shipping')) {
-      document.getElementById('cart-shipping').textContent = `£${shippingPrice.toFixed(2)}`;
+    // Optional: Function to update Stripe checkout total
+    function updateStripeTotal(shippingPrice) {
+      // This would connect to your Stripe checkout logic
+      console.log(`Updating Stripe total with shipping cost: £${shippingPrice}`);
+      
+      // Example implementation would depend on your Stripe setup
     }
-    
-    if (document.getElementById('cart-total')) {
-      document.getElementById('cart-total').textContent = `£${total.toFixed(2)}`;
-    }
-  }
-</script>
+  </script>
+</body>
+</html>
