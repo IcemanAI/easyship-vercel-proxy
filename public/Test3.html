@@ -73,11 +73,8 @@
     };
 
     const getEndpoint = () => {
-      const useSandbox = document.getElementById('sandboxToggle').checked;
-      return useSandbox
-        ? "https://easyship-vercel-proxy.vercel.app/api/sendcloud-estimate"
-        : "https://your-production-endpoint.vercel.app/api/sendcloud-estimate";
-    };
+  return "https://easyship-vercel-proxy.vercel.app/api/sendcloud-estimate";
+};
 
     async function getEstimate() {
       const postal_code = document.getElementById("postalCode").value;
